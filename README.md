@@ -71,14 +71,15 @@ Snapshots are stored in a private directory under `$XDG_RUNTIME_DIR/sway-nook-<u
 
 ## Arch package
 
-Build and install with the included [`PKGBUILD`](packaging/arch/PKGBUILD):
+Install [`sway-nook`](https://aur.archlinux.org/packages/sway-nook) from the AUR:
 
 ```sh
-cd packaging/arch
+git clone https://aur.archlinux.org/sway-nook.git
+cd sway-nook
 makepkg -si
 ```
 
-See [packaging notes](packaging/arch/README.md) for package contents.
+To build the package from this source checkout, run `makepkg -si` in [`packaging/arch`](packaging/arch/). See [packaging notes](packaging/arch/README.md) for package contents.
 
 ## Development and license
 
