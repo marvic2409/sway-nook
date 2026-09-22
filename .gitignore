@@ -1,0 +1,15 @@
+/build/
+/build-local/
+/build-*/
+/designs/
+/docs/superpowers/
+/docs/installation.json
+/docs/verification.md
+/sway_shelf/
+/bin/
+/tests/test_backend.py
+/tests/manual_windows.py
+*.pkg.tar.*
+*.pyc
+__pycache__/
+.superpowers/

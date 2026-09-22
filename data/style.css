@@ -1,0 +1,192 @@
+window.shelf-window,
+window#sway-nook {
+  background-color: transparent;
+}
+
+.shelf-panel {
+  min-height: 286px;
+  background-color: @nook_panel;
+  color: @nook_text;
+  border: 1px solid @nook_border;
+  border-radius: 14px;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.52);
+}
+
+.shelf-header {
+  min-height: 46px;
+  padding: 0 14px;
+  border-bottom: 1px solid @nook_accent_line;
+}
+
+.shelf-mark {
+  color: @nook_accent;
+}
+
+.shelf-title {
+  color: @nook_text;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.total-count,
+.card-count {
+  min-width: 19px;
+  min-height: 19px;
+  padding: 0 4px;
+  color: @nook_accent;
+  background-color: @nook_accent_soft;
+  border: 1px solid @nook_accent_border;
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.header-hint {
+  color: @nook_muted;
+  font-size: 11px;
+}
+
+.close-button {
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0;
+  color: @nook_muted;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.close-button:hover,
+.close-button:focus {
+  color: @nook_text;
+  background-color: @nook_accent_soft;
+}
+
+.card-scroller {
+  min-height: 204px;
+  padding: 12px 14px 8px 14px;
+  background: transparent;
+  border: 0;
+}
+
+.card-row {
+  padding: 0 2px 8px 2px;
+}
+
+.window-card {
+  min-width: 280px;
+  padding: 0;
+  color: @nook_text;
+  background-color: @nook_card;
+  border: 1px solid @nook_border;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.window-card:hover {
+  background-color: @nook_card_hover;
+  border-color: @nook_accent_hover;
+}
+
+.window-card.selected,
+.window-card:focus {
+  background-color: @nook_card_hover;
+  border: 2px solid @nook_accent;
+  box-shadow: 0 0 0 2px @nook_accent_outline;
+}
+
+.window-card:active {
+  background-color: @nook_card_hover;
+}
+
+.preview-frame {
+  min-width: 256px;
+  min-height: 138px;
+  margin: 7px 7px 0 7px;
+  /* Keep thumbnail pixels and their letterbox backing fully opaque. */
+  background-color: @nook_preview;
+  border-radius: 6px 6px 0 0;
+}
+
+.preview-placeholder {
+  color: @nook_muted;
+}
+
+.card-details {
+  min-height: 47px;
+  padding: 8px 10px;
+  border-top: 1px solid @nook_accent_soft;
+}
+
+.app-icon {
+  min-width: 30px;
+  min-height: 30px;
+  padding: 4px;
+  background-color: @nook_accent_icon;
+  border-radius: 7px;
+}
+
+.card-title {
+  color: @nook_text;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.card-subtitle {
+  color: @nook_muted;
+  font-size: 10px;
+}
+
+.empty-state {
+  min-height: 198px;
+  padding: 20px;
+}
+
+.empty-icon {
+  color: @nook_accent;
+  opacity: 0.72;
+}
+
+.empty-title {
+  color: @nook_text;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.empty-help {
+  color: @nook_muted;
+  font-size: 12px;
+}
+
+.shelf-footer {
+  min-height: 37px;
+  padding: 0 14px;
+  border-top: 1px solid @nook_accent_line;
+}
+
+.key-hints {
+  color: @nook_muted;
+  font-family: monospace;
+  font-size: 10px;
+}
+
+.status {
+  color: @nook_text;
+  font-size: 11px;
+}
+
+scrollbar.horizontal {
+  min-height: 5px;
+  background: transparent;
+}
+
+scrollbar.horizontal slider {
+  min-width: 40px;
+  min-height: 4px;
+  background-color: @nook_accent_border;
+  border-radius: 4px;
+}
+
+scrollbar.horizontal slider:hover {
+  background-color: @nook_accent_hover;
+}
