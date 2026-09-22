@@ -8,12 +8,12 @@ url='https://github.com/marvic2409/sway-nook'
 license=('GPL-3.0-only')
 depends=('sway' 'grim' 'gtk3' 'gtk-layer-shell' 'json-glib'
          'glib2' 'glibc' 'gdk-pixbuf2' 'at-spi2-core')
-makedepends=('git' 'meson' 'ninja')
-source=("git+${url}.git#tag=v${pkgver}")
-sha256sums=('SKIP') # Git source is pinned to the release tag.
+makedepends=('meson' 'ninja')
+source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('560bc726a5f20770d39e0b1056342ad84ad694c8865c1e8a6d121a121f6edc15')
 
 build() {
-  arch-meson "$srcdir/$pkgname" build
+  arch-meson "$srcdir/$pkgname-$pkgver" build
   meson compile -C build
 }
 
