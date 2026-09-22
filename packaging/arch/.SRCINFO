@@ -1,0 +1,23 @@
+pkgbase = sway-nook
+	pkgdesc = Native scratchpad shelf for Sway
+	pkgver = 0.1.0
+	pkgrel = 1
+	url = https://github.com/marvic2409/sway-nook
+	arch = x86_64
+	license = GPL-3.0-only
+	makedepends = git
+	makedepends = meson
+	makedepends = ninja
+	depends = sway
+	depends = grim
+	depends = gtk3
+	depends = gtk-layer-shell
+	depends = json-glib
+	depends = glib2
+	depends = glibc
+	depends = gdk-pixbuf2
+	depends = at-spi2-core
+	source = git+https://github.com/marvic2409/sway-nook.git#tag=v0.1.0
+	sha256sums = SKIP
+
+pkgname = sway-nook
