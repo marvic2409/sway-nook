@@ -16,6 +16,7 @@ typedef struct {
     GByteArray *event_bytes;
     GHashTable *attempted;
     GHashTable *hidden_ids;
+    char *connection_error;
     gint64 selected_id;
     guint refresh_source;
     gint available_width;
@@ -36,7 +37,17 @@ static void show_error(NookApp *app, const char *message) {
     gtk_widget_show(app->status);
 }
 
+static void show_connection_error(NookApp *app, const char *message) {
+    g_free(app->connection_error);
+    app->connection_error = g_strdup(message);
+    show_error(app, message);
+}
+
 static void clear_error(NookApp *app) {
+    if (app->connection_error) {
+        show_error(app, app->connection_error);
+        return;
+    }
     gtk_label_set_text(GTK_LABEL(app->status), "");
     gtk_widget_hide(app->status);
 }
@@ -76,6 +87,13 @@ static gboolean focus_card(GtkWidget *button, GdkEventFocus *event, gpointer dat
     (void)event;
     select_button(data, button, FALSE);
     return FALSE;
+}
+
+static void card_allocated(GtkWidget *button, GtkAllocation *allocation, gpointer data) {
+    (void)allocation;
+    NookApp *app = data;
+    if (app->window && button_id(button) == app->selected_id)
+        select_button(app, button, FALSE);
 }
 
 static void close_shelf(NookApp *app) {
@@ -175,6 +193,7 @@ static GtkWidget *make_card(NookApp *app, NookWindow *window) {
     g_object_set_data(G_OBJECT(button), "nook-id", (gpointer)(gintptr)window->id);
     g_signal_connect(button, "clicked", G_CALLBACK(card_clicked), app);
     g_signal_connect(button, "focus-in-event", G_CALLBACK(focus_card), app);
+    g_signal_connect_after(button, "size-allocate", G_CALLBACK(card_allocated), app);
     char *tooltip = g_strdup_printf("Bring %s forward", window->title);
     gtk_widget_set_tooltip_text(button, tooltip);
     g_free(tooltip);
@@ -310,7 +329,10 @@ static gboolean refresh_callback(gpointer data) {
 
 static gboolean event_callback(GSocket *socket, GIOCondition condition, gpointer data) {
     NookApp *app = data;
-    if (condition & (G_IO_HUP | G_IO_ERR)) return G_SOURCE_REMOVE;
+    if (condition & (G_IO_HUP | G_IO_ERR)) {
+        show_connection_error(app, "Sway event connection closed; reopen the shelf");
+        return G_SOURCE_REMOVE;
+    }
     guint8 chunk[8192];
     while (TRUE) {
         GError *error = NULL;
@@ -318,25 +340,30 @@ static gboolean event_callback(GSocket *socket, GIOCondition condition, gpointer
         if (count <= 0) {
             gboolean wait = error && g_error_matches(error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK);
             g_clear_error(&error);
-            if (!wait) show_error(app, "Sway event connection closed; reopen the shelf");
+            if (!wait) show_connection_error(app, "Sway event connection closed; reopen the shelf");
             return wait ? G_SOURCE_CONTINUE : G_SOURCE_REMOVE;
         }
         g_byte_array_append(app->event_bytes, chunk, count);
         while (app->event_bytes->len >= 14) {
             const guint8 *frame = app->event_bytes->data;
-            if (memcmp(frame, "i3-ipc", 6)) return G_SOURCE_REMOVE;
+            if (memcmp(frame, "i3-ipc", 6)) {
+                show_connection_error(app, "Invalid Sway event header; reopen the shelf");
+                return G_SOURCE_REMOVE;
+            }
             guint32 raw_length;
             memcpy(&raw_length, frame + 6, 4);
             guint32 length = GUINT32_FROM_LE(raw_length);
-            if (length > 32u * 1024u * 1024u) return G_SOURCE_REMOVE;
+            if (length > 32u * 1024u * 1024u) {
+                show_connection_error(app, "Sway event frame is too large; reopen the shelf");
+                return G_SOURCE_REMOVE;
+            }
             if (app->event_bytes->len < (gsize)length + 14) break;
             JsonParser *parser = json_parser_new();
             gboolean relevant = FALSE;
-            if (json_parser_load_from_data(parser, (const char *)frame + 14, length, NULL)) {
-                JsonNode *root = json_parser_get_root(parser);
-                JsonObject *event = JSON_NODE_HOLDS_OBJECT(root) ? json_node_get_object(root) : NULL;
-                const char *change = event
-                    ? json_object_get_string_member_with_default(event, "change", "") : "";
+            if (json_parser_load_from_data(parser, (const char *)frame + 14, length, NULL) &&
+                JSON_NODE_HOLDS_OBJECT(json_parser_get_root(parser))) {
+                JsonObject *event = json_node_get_object(json_parser_get_root(parser));
+                const char *change = json_object_get_string_member_with_default(event, "change", "");
                 if (!g_strcmp0(change, "new") || !g_strcmp0(change, "close") ||
                     !g_strcmp0(change, "move")) relevant = TRUE;
                 else if (!g_strcmp0(change, "title") && app->hidden_ids) {
@@ -347,6 +374,10 @@ static gboolean event_callback(GSocket *socket, GIOCondition condition, gpointer
                     relevant = g_hash_table_contains(app->hidden_ids, key);
                     g_free(key);
                 }
+            } else {
+                g_object_unref(parser);
+                show_connection_error(app, "Invalid Sway event payload; reopen the shelf");
+                return G_SOURCE_REMOVE;
             }
             g_object_unref(parser);
             g_byte_array_remove_range(app->event_bytes, 0, length + 14);
@@ -373,6 +404,7 @@ static void on_destroy(GtkWidget *widget, gpointer data) {
     g_clear_pointer(&app->event_bytes, g_byte_array_unref);
     g_clear_pointer(&app->attempted, g_hash_table_unref);
     g_clear_pointer(&app->hidden_ids, g_hash_table_unref);
+    g_clear_pointer(&app->connection_error, g_free);
     g_application_quit(G_APPLICATION(app->app));
 }
 
@@ -594,8 +626,8 @@ static int on_command_line(GApplication *application, GApplicationCommandLine *l
         g_source_set_callback(app->event_source, G_SOURCE_FUNC(event_callback), app, NULL);
         g_source_attach(app->event_source, NULL);
     } else {
-        char *message = g_strdup_printf("Could not watch Sway events: %s", error->message);
-        show_error(app, message);
+        char *message = g_strdup_printf("Could not watch Sway events: %s; reopen the shelf", error->message);
+        show_connection_error(app, message);
         g_free(message);
         g_clear_error(&error);
     }

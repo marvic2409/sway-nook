@@ -20,3 +20,16 @@ install_data('config/sway-nook.conf', install_dir: get_option('datadir') / 'doc'
 test_binary = executable('test-native', files('tests/test_native.c', 'src/model.c', 'src/theme.c', 'src/snapshot.c'),
   include_directories: inc, dependencies: deps)
 test('native', test_binary)
+
+ipc_test = executable('test-ipc', files('tests/test_ipc.c', 'src/ipc.c'),
+  include_directories: inc, dependencies: deps)
+test('ipc', ipc_test)
+
+ui_test = executable('test-ui', common, files('tests/test_ui.c', 'src/cli.c'),
+  include_directories: inc, dependencies: deps)
+xvfb = find_program('xvfb-run', required: false)
+if xvfb.found()
+  test('ui', xvfb, args: ['-a', ui_test], env: ['GDK_BACKEND=x11'])
+else
+  test('ui', ui_test)
+endif

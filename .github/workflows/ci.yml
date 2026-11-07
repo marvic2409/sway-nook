@@ -1,13 +1,28 @@
 name: Build and test
 on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   native:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        sanitize: [none, 'address,undefined']
+    env:
+      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install build dependencies
-        run: sudo apt-get update && sudo apt-get install -y meson ninja-build libgtk-3-dev libgtk-layer-shell-dev libjson-glib-dev
+        run: sudo apt-get update && sudo apt-get install -y meson ninja-build libgtk-3-dev libgtk-layer-shell-dev libjson-glib-dev xvfb xauth
       - name: Build
-        run: meson setup build && meson compile -C build
-      - name: Test
-        run: meson test -C build --print-errorlogs
+        run: meson setup build -Dwerror=true -Db_sanitize=${{ matrix.sanitize }} && meson compile -C build
+      - name: Test native code and IPC
+        run: meson test -C build native ipc --print-errorlogs
+      - name: Test GTK under Xvfb
+        # GTK and Fontconfig keep process-global allocations. Address and UB checks remain fatal.
+        env:
+          ASAN_OPTIONS: detect_leaks=0:halt_on_error=1:abort_on_error=1
+        run: meson test -C build ui --print-errorlogs

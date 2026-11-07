@@ -83,6 +83,27 @@ To build the package from this source checkout, run `makepkg -si` in [`packaging
 
 ## Development and license
 
-After editing the C sources, run `meson compile -C build` and `meson test -C build --print-errorlogs`. Unit tests run without a compositor; UI testing requires Sway. GitHub Actions builds and tests every push and pull request.
+After editing the C sources, build with warnings treated as errors and run the tests:
+
+```sh
+meson setup build-dev -Dwerror=true
+meson compile -C build-dev
+meson test -C build-dev --print-errorlogs
+```
+
+The native and IPC tests run without a compositor. IPC tests use private local Unix sockets. GTK regression tests use `xvfb-run` automatically when installed (Arch: `xorg-server-xvfb` and `xorg-xauth`; Debian/Ubuntu: `xvfb` and `xauth`). Meson forces the X11 backend for Xvfb, so these tests do not use your Sway session. Without Xvfb, GTK tests use the available display or skip cleanly if no display is available. Testing layer-shell placement and keyboard capture still requires Sway.
+
+To check address and undefined-behavior sanitizers:
+
+```sh
+meson setup build-sanitize -Dwerror=true -Db_sanitize=address,undefined
+meson compile -C build-sanitize
+ASAN_OPTIONS=halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
+  meson test -C build-sanitize native ipc --print-errorlogs
+ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
+  meson test -C build-sanitize ui --print-errorlogs
+```
+
+Only the GTK test disables leak detection because GTK and Fontconfig retain process-global allocations; address and undefined-behavior errors still fail the test. GitHub Actions runs both normal and sanitizer builds on every push and pull request.
 
 Licensed under [GPL-3.0-only](LICENSE).
