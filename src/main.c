@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
         return 0;
     }
     if (!g_strcmp0(action, "--version")) {
-        g_print("sway-nook 0.1.0\n");
+        g_print("sway-nook 0.1.1\n");
         return 0;
     }
     gboolean ui = !g_strcmp0(action, "toggle") || !g_strcmp0(action, "show");
