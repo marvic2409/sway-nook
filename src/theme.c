@@ -25,8 +25,12 @@ static gboolean set_color(GKeyFile *file, const char *key, char **target, GError
 
 static gboolean set_opacity(GKeyFile *file, const char *key, double *target, GError **error) {
     if (!g_key_file_has_key(file, "theme", key, NULL)) return TRUE;
-    double value = g_key_file_get_double(file, "theme", key, error);
-    if (error && *error) return FALSE;
+    GError *local_error = NULL;
+    double value = g_key_file_get_double(file, "theme", key, &local_error);
+    if (local_error) {
+        g_propagate_error(error, local_error);
+        return FALSE;
+    }
     if (value < 0 || value > 1 || !isfinite(value)) {
         g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE,
                     "%s must be between 0 and 1", key);

@@ -106,6 +106,61 @@ static void theme_rejects_typo(void) {
     g_free(path);
 }
 
+static void theme_rejects_malformed_opacity(void) {
+    const char *keys[] = {"panel_opacity", "card_opacity", "card_hover_opacity"};
+    char *path = g_strdup_printf("%s/nook-theme-XXXXXX", g_get_tmp_dir());
+    int fd = g_mkstemp(path);
+    g_assert_cmpint(fd, >=, 0);
+    close(fd);
+    for (guint i = 0; i < G_N_ELEMENTS(keys); i++) {
+        char *contents = g_strdup_printf("[theme]\n%s=invalid\n", keys[i]);
+        g_assert_true(g_file_set_contents(path, contents, -1, NULL));
+        g_free(contents);
+        GError *error = NULL;
+        g_assert_null(nook_theme_load(path, &error));
+        g_assert_nonnull(error);
+        g_clear_error(&error);
+        g_assert_null(nook_theme_load(path, NULL));
+    }
+    g_unlink(path);
+    g_free(path);
+}
+
+static double theme_opacity_value(const NookTheme *theme, const char *key) {
+    if (!g_strcmp0(key, "panel_opacity")) return theme->panel_opacity;
+    if (!g_strcmp0(key, "card_opacity")) return theme->card_opacity;
+    return theme->card_hover_opacity;
+}
+
+static void theme_opacity_bounds(void) {
+    const char *keys[] = {"panel_opacity", "card_opacity", "card_hover_opacity"};
+    const char *invalid[] = {"-0.01", "1.01", "nan", "inf", "-inf"};
+    char *path = g_strdup_printf("%s/nook-theme-XXXXXX", g_get_tmp_dir());
+    int fd = g_mkstemp(path);
+    g_assert_cmpint(fd, >=, 0);
+    close(fd);
+    for (guint i = 0; i < G_N_ELEMENTS(keys); i++) {
+        const char *endpoints[] = {"0", "1"};
+        for (guint j = 0; j < G_N_ELEMENTS(endpoints); j++) {
+            char *contents = g_strdup_printf("[theme]\n%s=%s\n", keys[i], endpoints[j]);
+            g_assert_true(g_file_set_contents(path, contents, -1, NULL));
+            g_free(contents);
+            NookTheme *theme = nook_theme_load(path, NULL);
+            g_assert_nonnull(theme);
+            g_assert_cmpfloat(theme_opacity_value(theme, keys[i]), ==, j);
+            nook_theme_free(theme);
+        }
+        for (guint j = 0; j < G_N_ELEMENTS(invalid); j++) {
+            char *contents = g_strdup_printf("[theme]\n%s=%s\n", keys[i], invalid[j]);
+            g_assert_true(g_file_set_contents(path, contents, -1, NULL));
+            g_free(contents);
+            g_assert_null(nook_theme_load(path, NULL));
+        }
+    }
+    g_unlink(path);
+    g_free(path);
+}
+
 static void snapshot_rejects_symlink_without_writing_through_it(void) {
     char *root = g_dir_make_tmp("nook-test-XXXXXX", NULL);
     g_assert_nonnull(root);
@@ -172,6 +227,8 @@ int main(int argc, char **argv) {
     g_test_add_func("/theme/override", theme_override);
     g_test_add_func("/theme/invalid", theme_rejects_invalid);
     g_test_add_func("/theme/typo", theme_rejects_typo);
+    g_test_add_func("/theme/malformed-opacity", theme_rejects_malformed_opacity);
+    g_test_add_func("/theme/opacity-bounds", theme_opacity_bounds);
     g_test_add_func("/snapshot/symlink", snapshot_rejects_symlink_without_writing_through_it);
     g_test_add_func("/snapshot/timeout", snapshot_capture_times_out);
     return g_test_run();
